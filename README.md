@@ -343,5 +343,17 @@ Ip,Name,Metadata,Description,ReservedBy,ReservedOn,IsProduction,IsTaken,pyss_isp
 
 ```
 
+## Transmit function example:
+Providing a module to provision IP addresses and submets in a playbook directly from phpIPAM:
+
+```
+
+python pysser.py --configfile transmitConfig.ini --transmit
+
+```
+
+Flag --transmit means export from [global] application and import to [import] one.
+
+
 ## Future Enhancements
 * Export/Import to/from phpIpam via

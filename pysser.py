@@ -20,6 +20,7 @@ from requests.auth import HTTPBasicAuth
 # project specific imports
 import imports
 import loaders
+import transmits
 from classes.Runtime import Runtime
 from classes.GlobalConfig import GlobalConfig
 from classes.Section import Section
@@ -222,7 +223,7 @@ def create_subnet_test(settings, session):
     logging.debug(r.content)
 
 
-def process_config(filename):
+def process_config(filename, config_type='global'):
     """
     Processes the config INI file and returns a Settings
     object.
@@ -233,21 +234,22 @@ def process_config(filename):
     try:
         cfg = ConfigParser.ConfigParser()
         cfg.read(filename)
-        base_url = cfg.get('global', 'base_url')
-        app = cfg.get('global', 'app_id')
-        username = cfg.get('global', 'username')
-        password = cfg.get('global', 'password')
+        base_url = cfg.get(config_type, 'base_url')
+        app = cfg.get(config_type, 'app_id')
+        username = cfg.get(config_type, 'username')
+        password = cfg.get(config_type, 'password')
+
         settings = GlobalConfig(base_url, app, username, password)
-        default_section = cfg.get('global', 'default_section')
+        default_section = cfg.get(config_type, 'default_section')
         settings.default_section = default_section
         try:
-            hostname_validation = cfg.get('global', 'hostname_validation')
+            hostname_validation = cfg.get(config_type, 'hostname_validation')
             if hostname_validation.lower() == 'false' or hostname_validation == '0':
                 settings.hostname_validation = False
         except:
             pass
         try:
-            settings.filter_subnet = cfg.get('global', 'filter_subnet')
+            settings.filter_subnet = cfg.get(config_type, 'filter_subnet')
         except:
             settings.filter_subnet = None
         try:
@@ -844,9 +846,9 @@ def debug(settings, session, options):
     '''
 
 
-def dataload(opts):
+def dataload(opts, config_type='global'):
     logging.debug('------- ENTERING FUNCTION: dataload() -------')
-    settings = process_config(opts.configfile)
+    settings = process_config(opts.configfile, config_type)
     # build a runtime object to store pulled data
     session = Runtime()
     # if filter_subnet came in from config process it first
@@ -908,6 +910,11 @@ def main(opts):
         sys.exit(0)
     elif opts.searchhostname:
         search_for_hostname(session, opts.searchhostname)
+        sys.exit(0)
+    elif opts.transmit:
+        (settings_i, session_i) = dataload(opts, 'import')
+        transmits.transmit_subnets(session, settings_i, session_i, opts)
+        transmits.transmit_addresses(session, settings_i, session_i, opts)
         sys.exit(0)
     else:
         if opts.deletesubnets:
@@ -1010,6 +1017,11 @@ if __name__ == '__main__':
                             " '--firstavailable MYHOSTNAME --filtersubnet 10.119.125.0' "
                             "(Default=None)"),
                       default=None)
+    parser.add_option('--transmit',
+                  action='store_true',
+                  help=("Boolean flag. If this option is present then export/import transmit " +
+                        "will be run (default=False)"),
+                  default=False)
     parser_debug = OptionGroup(parser, 'Debug Options')
     parser_debug.add_option('-d', '--debug', type='string',
                             help=('Available levels are CRITICAL (3), ERROR (2), '
